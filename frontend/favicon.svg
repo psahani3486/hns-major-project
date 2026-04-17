@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Lung AI">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2e6f6a" />
+      <stop offset="100%" stop-color="#b55e35" />
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#f6f1ea" stroke="#292420" stroke-opacity="0.2"/>
+  <path d="M26 18c-6 0-10 5-10 12v8c0 6 4 11 10 11 5 0 8-4 8-9V27c0-5-3-9-8-9z" fill="url(#g)"/>
+  <path d="M38 18c6 0 10 5 10 12v8c0 6-4 11-10 11-5 0-8-4-8-9V27c0-5 3-9 8-9z" fill="url(#g)"/>
+  <circle cx="32" cy="33" r="3" fill="#292420"/>
+</svg>

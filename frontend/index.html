@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lung Disease Classifier</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Newsreader:opsz,wght@6..72,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="kicker">Medical Imaging AI</p>
+          <h1>Chest X-ray Disease Prediction with Explainable Heatmaps</h1>
+          <p class="lead">
+            Upload one X-ray image and get the top prediction, confidence ranking, and Grad-CAM explanation maps from your trained model.
+          </p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="controls">
+          <div class="control-row">
+            <label for="apiBase">Backend URL</label>
+            <button id="saveSettingsBtn" type="button" class="ghost">Save Settings</button>
+          </div>
+          <input id="apiBase" type="text" value="http://127.0.0.1:8000" placeholder="http://127.0.0.1:8000" />
+
+          <div
+            id="dropZone"
+            class="drop-zone"
+            role="button"
+            tabindex="0"
+            aria-label="Drop an X-ray image or click to choose"
+          >
+            <p class="drop-title">Drop an X-ray image here</p>
+            <p class="drop-sub">or click to browse from your device</p>
+            <input id="imageInput" type="file" accept="image/*" hidden />
+          </div>
+
+          <div class="meta-grid">
+            <p><span class="meta-k">File:</span> <span id="fileName">-</span></p>
+            <p><span class="meta-k">Size:</span> <span id="fileSize">-</span></p>
+            <p><span class="meta-k">Top-K:</span> <span id="topKValue">5</span></p>
+          </div>
+
+          <label for="topKRange">Probability rows</label>
+          <input id="topKRange" type="range" min="1" max="5" step="1" value="5" />
+
+          <label for="sortBy">Sort probabilities by</label>
+          <select id="sortBy">
+            <option value="confidence" selected>Confidence (high to low)</option>
+            <option value="name">Class name (A to Z)</option>
+          </select>
+
+          <div class="actions-row">
+            <button id="predictBtn" type="button">Run Prediction</button>
+            <button id="copyJsonBtn" type="button" class="ghost" disabled>Copy JSON</button>
+          </div>
+          <p id="status" class="status">Waiting for image input.</p>
+        </div>
+
+        <div class="result">
+          <div class="prediction-card">
+            <h2>Prediction</h2>
+            <p id="predictedLabel" class="predicted">-</p>
+            <p id="predictedConfidence" class="confidence">-</p>
+          </div>
+
+          <div>
+            <h3>Class Probabilities</h3>
+            <ul id="probList" class="prob-list"></ul>
+          </div>
+
+          <div>
+            <h3>Recent Predictions</h3>
+            <ul id="historyList" class="history-list"></ul>
+          </div>
+
+          <div>
+            <h3>Model Details</h3>
+            <div id="analysisMeta" class="analysis-meta"></div>
+            <ul id="modelDetailList" class="model-detail-list"></ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="images-grid">
+        <article>
+          <h3>Input</h3>
+          <img id="imgInput" alt="Input image" />
+          <button id="downloadInputBtn" type="button" class="ghost image-action" disabled>Download Input</button>
+        </article>
+        <article>
+          <h3>Grad-CAM Heatmap</h3>
+          <img id="imgHeatmap" alt="Heatmap image" />
+          <button id="downloadHeatmapBtn" type="button" class="ghost image-action" disabled>Download Heatmap</button>
+        </article>
+        <article>
+          <h3>Overlay</h3>
+          <img id="imgOverlay" alt="Overlay image" />
+          <button id="downloadOverlayBtn" type="button" class="ghost image-action" disabled>Download Overlay</button>
+        </article>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
