@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import tempfile
+import urllib.request
 from pathlib import Path
 from collections import defaultdict
 
@@ -25,8 +27,23 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 bundle_override = os.getenv("MODEL_BUNDLE_PATH")
+bundle_path = None
 if bundle_override:
-    bundle_path = Path(bundle_override)
+    # Support: absolute path, repo-relative path, or remote HTTP/HTTPS URL
+    if bundle_override.startswith("http://") or bundle_override.startswith("https://"):
+        try:
+            tmpf = tempfile.NamedTemporaryFile(delete=False, suffix=".pt")
+            tmpf.close()
+            urllib.request.urlretrieve(bundle_override, tmpf.name)
+            bundle_path = Path(tmpf.name)
+        except Exception as exc:
+            bundle_path = None
+            _load_error = f"Failed to download MODEL_BUNDLE_PATH URL: {exc}"
+    else:
+        p = Path(bundle_override)
+        if not p.is_absolute():
+            p = PROJECT_ROOT / p
+        bundle_path = p
 else:
     try:
         bundle_path = find_default_bundle_path(PROJECT_ROOT)
@@ -37,12 +54,14 @@ LOADED = None
 _load_error: str | None = None
 if bundle_path is not None:
     try:
+        if not bundle_path.exists():
+            raise FileNotFoundError(str(bundle_path))
         LOADED = load_bundle(bundle_path, DEVICE)
     except Exception as exc:  # keep service up even if bundle loading fails
         LOADED = None
         _load_error = str(exc)
 else:
-    _load_error = "No deployment bundle found; set MODEL_BUNDLE_PATH or add outputs_paper_seed3_ep10/*.pt"
+    _load_error = "No deployment bundle found; set MODEL_BUNDLE_PATH (local path or http(s) URL) or add outputs_paper_seed3_ep10/*.pt"
 
 
 def discover_representative_bundles(project_root: Path) -> dict[str, Path]:
