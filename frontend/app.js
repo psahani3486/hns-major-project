@@ -36,6 +36,10 @@ function defaultApiBase() {
   if (host === "localhost" || host === "127.0.0.1") {
     return "http://127.0.0.1:8000";
   }
+  // If deployed on Vercel, point to the Render backend automatically
+  if (host.includes("vercel.app") || host.includes("now.sh")) {
+    return "https://chest-xray-backend-1wdr.onrender.com";
+  }
   return `${window.location.origin}/api`;
 }
 
