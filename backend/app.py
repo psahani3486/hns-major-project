@@ -28,6 +28,8 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 bundle_override = os.getenv("MODEL_BUNDLE_PATH")
 bundle_path = None
+_load_error: str | None = None
+
 if bundle_override:
     # Support: absolute path, repo-relative path, or remote HTTP/HTTPS URL
     if bundle_override.startswith("http://") or bundle_override.startswith("https://"):
@@ -41,26 +43,39 @@ if bundle_override:
             _load_error = f"Failed to download MODEL_BUNDLE_PATH URL: {exc}"
     else:
         p = Path(bundle_override)
-        if not p.is_absolute():
-            p = PROJECT_ROOT / p
-        bundle_path = p
+        if p.exists():
+            bundle_path = p
+        else:
+            # Try relative to project root
+            repo_relative = PROJECT_ROOT / p
+            if repo_relative.exists():
+                bundle_path = repo_relative
+            else:
+                # Search recursively for the filename under outputs_paper_seed3_ep10 or PROJECT_ROOT
+                filename = p.name
+                search_results = sorted(PROJECT_ROOT.glob(f"**/outputs_paper_seed3_ep10/**/{filename}")) or sorted(PROJECT_ROOT.glob(f"**/{filename}"))
+                if search_results:
+                    bundle_path = search_results[0]
+                else:
+                    bundle_path = repo_relative  # fallback to trigger FileNotFoundError
+
 else:
     try:
         bundle_path = find_default_bundle_path(PROJECT_ROOT)
-    except FileNotFoundError:
+    except FileNotFoundError as exc:
         bundle_path = None
+        _load_error = str(exc)
 
 LOADED = None
-_load_error: str | None = None
 if bundle_path is not None:
     try:
         if not bundle_path.exists():
-            raise FileNotFoundError(str(bundle_path))
+            raise FileNotFoundError(f"[Errno 2] No such file or directory: '{bundle_path}'")
         LOADED = load_bundle(bundle_path, DEVICE)
     except Exception as exc:  # keep service up even if bundle loading fails
         LOADED = None
         _load_error = str(exc)
-else:
+elif _load_error is None:
     _load_error = "No deployment bundle found; set MODEL_BUNDLE_PATH (local path or http(s) URL) or add outputs_paper_seed3_ep10/*.pt"
 
 
