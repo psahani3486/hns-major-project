@@ -97,13 +97,6 @@ def discover_representative_bundles(project_root: Path) -> dict[str, Path]:
 
 
 REPRESENTATIVE_BUNDLES = discover_representative_bundles(PROJECT_ROOT)
-LOADED_MODELS: dict[str, object] = {}
-for name, path in REPRESENTATIVE_BUNDLES.items():
-    try:
-        LOADED_MODELS[name] = load_bundle(path, DEVICE)
-    except Exception:
-        # skip models that fail to load; keep server available
-        continue
 
 app = FastAPI(title="Lung Disease Inference API", version="1.0.0")
 
@@ -167,7 +160,7 @@ def model_info() -> dict[str, object]:
                 "model_name": model_name,
                 "bundle": str(REPRESENTATIVE_BUNDLES[model_name]),
             }
-            for model_name in sorted(LOADED_MODELS.keys())
+            for model_name in sorted(REPRESENTATIVE_BUNDLES.keys())
         ],
     }
 
@@ -193,21 +186,38 @@ async def predict(file: UploadFile = File(...)) -> JSONResponse:
 
         per_model_results: list[dict[str, object]] = []
         prob_vectors: list[np.ndarray] = []
-        for model_name, loaded_model in sorted(LOADED_MODELS.items()):
-            probs = predict_probabilities(image_bytes, loaded_model, DEVICE)
-            prob_vectors.append(probs)
-            analysis = summarize_probabilities(probs, loaded_model.class_names)
-            per_model_results.append(
-                {
-                    "model_name": model_name,
-                    "bundle": str(REPRESENTATIVE_BUNDLES[model_name]),
-                    "predicted_index": analysis["predicted_index"],
-                    "predicted_label": analysis["predicted_label"],
-                    "top_confidence": analysis["top_confidence"],
-                    "analysis": analysis,
-                    "class_probabilities": rank_probabilities(probs, loaded_model.class_names),
-                }
-            )
+        for model_name, path in sorted(REPRESENTATIVE_BUNDLES.items()):
+            try:
+                # Reuse the already loaded model if it matches the current backbone to save memory and time
+                if LOADED is not None and LOADED.backbone == model_name:
+                    loaded_model = LOADED
+                    should_delete = False
+                else:
+                    loaded_model = load_bundle(path, DEVICE)
+                    should_delete = True
+
+                probs = predict_probabilities(image_bytes, loaded_model, DEVICE)
+                prob_vectors.append(probs)
+                analysis = summarize_probabilities(probs, loaded_model.class_names)
+                per_model_results.append(
+                    {
+                        "model_name": model_name,
+                        "bundle": str(path),
+                        "predicted_index": analysis["predicted_index"],
+                        "predicted_label": analysis["predicted_label"],
+                        "top_confidence": analysis["top_confidence"],
+                        "analysis": analysis,
+                        "class_probabilities": rank_probabilities(probs, loaded_model.class_names),
+                    }
+                )
+
+                if should_delete:
+                    del loaded_model
+                    import gc
+                    gc.collect()
+            except Exception as e:
+                print(f"Failed to run inference for {model_name}: {e}")
+                continue
 
         ensemble_probs = np.stack(prob_vectors, axis=0).mean(axis=0) if prob_vectors else np.array([])
         if ensemble_probs.size:
