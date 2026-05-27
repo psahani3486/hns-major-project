@@ -1,4 +1,4 @@
-# Chest X-ray Disease Classifier (Premium)
+# Chest X-ray Disease Classifier 
 
 An end-to-end locally runnable project for training, evaluating, and serving chest X-ray classifiers with explainable Grad-CAM visualizations.
 
@@ -36,80 +36,6 @@ This repository is now configured to deploy the `frontend/` app on Vercel using 
 Live frontend URL:
 
 - https://hns-major-project-9t5i.vercel.app/
-
-### 1) Push thhttps://chest-xray-backend-1wdr.onrender.comis repo to GitHub
-
-Make sure your latest changes (including `vercel.json`) are pushed.
-
-### 2) Import project in Vercel
-
-- Open Vercel dashboard
-- Click **Add New -> Project**
-- Import your GitHub repository
-- Keep default framework detection (static)
-- Deploy
-
-After deployment, your site root (`/`) serves files from `frontend/`.
-
-### 3) Configure backend URL in the UI
-
-The frontend auto-fills backend URL as:
-
-- Localhost: `http://127.0.0.1:8000`
-- Deployed: `<your-vercel-domain>/api`
-
-If your backend runs elsewhere (recommended for PyTorch models), enter that URL in the **Backend URL** field and click **Save Settings**.
-
-### Important Backend Note
-
-Your FastAPI + PyTorch inference backend may exceed practical limits for Vercel Serverless Functions due to model size and heavy ML dependencies.
-
-Recommended production setup:
-
-- Deploy frontend on Vercel
-- Deploy backend on a Python-friendly host (Render, Railway, Azure, GCP, AWS)
-- Set that backend URL in the frontend settings
-
-## Deploy Backend On Render
-
-This repository includes a Render blueprint file: `render.yaml`.
-
-### Option A: Blueprint deploy (recommended)
-
-1. Push this repository to GitHub.
-2. In Render dashboard, click **New +** -> **Blueprint**.
-3. Select this repository and deploy.
-
-Render will use:
-
-- Build command: `pip install -r requirements.txt`
-- Start command: `uvicorn backend.app:app --host 0.0.0.0 --port $PORT`
-
-### Option B: Manual Web Service
-
-1. In Render dashboard, click **New +** -> **Web Service**.
-2. Connect the same repository.
-3. Configure:
-
-- Runtime: Python
-- Build command: `pip install -r requirements.txt`
-- Start command: `uvicorn backend.app:app --host 0.0.0.0 --port $PORT`
-
-### Environment Variables
-
-- `MODEL_BUNDLE_PATH` (optional but recommended): absolute or repo-relative path to one `_deployment.pt` file.
-
-Example:
-
-```env
-MODEL_BUNDLE_PATH=outputs_paper_seed3_ep10/resnet18/lr0.0001_wd0.0001_bs8_ep10/resnet18_run0_deployment.pt
-```
-
-### Connect Vercel Frontend To Render Backend
-
-After Render deployment, copy your backend URL (for example `https://your-service.onrender.com`) and set it in the frontend **Backend URL** field, then click **Save Settings**.
-
----
 
 ## Screenshots
 
@@ -239,19 +165,6 @@ MODEL_BUNDLE_PATH=C:\absolute\path\to\resnet18_run0_deployment.pt
 - Containerize the backend and provide a `docker-compose` setup.
 - Add automated tests and CI to validate model loading and prediction endpoints.
 - Provide a model management UI to switch representative bundles at runtime.
-
-## Contributing
-
-Pull requests and issues are welcome. For major changes, open an issue first to discuss the roadmap.
-
-Suggested workflow:
-
-```bash
-git checkout -b feat/your-feature
-git commit -m "Add feature"
-git push origin feat/your-feature
-# Open a PR and link the issue
-```
 
 ## License
 
