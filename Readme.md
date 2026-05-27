@@ -33,7 +33,11 @@ This repository includes a training and evaluation pipeline, production-ready in
 
 This repository is now configured to deploy the `frontend/` app on Vercel using `vercel.json`.
 
-### 1) Push this repo to GitHub
+Live frontend URL:
+
+- https://hns-major-project-9t5i.vercel.app/
+
+### 1) Push thhttps://chest-xray-backend-1wdr.onrender.comis repo to GitHub
 
 Make sure your latest changes (including `vercel.json`) are pushed.
 
