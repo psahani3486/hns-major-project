@@ -31,6 +31,14 @@ const HISTORY_LIMIT = 6;
 let latestResponse = null;
 let latestProbs = [];
 
+function defaultApiBase() {
+  const host = window.location.hostname;
+  if (host === "localhost" || host === "127.0.0.1") {
+    return "http://127.0.0.1:8000";
+  }
+  return `${window.location.origin}/api`;
+}
+
 function readJson(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -67,7 +75,7 @@ function formatBytes(bytes) {
 
 function applySettings() {
   const settings = readJson(SETTINGS_KEY, {});
-  if (settings.apiBase) apiBaseInput.value = settings.apiBase;
+  apiBaseInput.value = settings.apiBase || defaultApiBase();
   if (settings.topK) topKRange.value = String(settings.topK);
   if (settings.sortBy) sortBy.value = settings.sortBy;
   topKValue.textContent = topKRange.value;
