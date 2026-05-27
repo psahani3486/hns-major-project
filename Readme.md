@@ -1,49 +1,180 @@
-# Frontend + Backend Setup
+# Chest X-ray Disease Classifier (Premium)
 
-This adds a complete local full-stack app for your trained chest X-ray model.
+An end-to-end locally runnable project for training, evaluating, and serving chest X-ray classifiers with explainable Grad-CAM visualizations.
 
-## What Was Added
+This repository includes a training and evaluation pipeline, production-ready inference backend (FastAPI), and a responsive frontend for running predictions and viewing Grad-CAM explanations.
 
-- Backend API: backend/app.py
-- Inference module: backend/inference.py
-- Frontend app: frontend/index.html, frontend/styles.css, frontend/app.js
+---
 
-## 1) Install Dependencies
+## Features
 
-From the project root:
+- Train and evaluate multiple backbones (AlexNet, ResNet18, DenseNet121, EfficientNet-B0)
+- Test-time augmentation (TTA) and Grad-CAM explanations
+- Saliency map generation and stability metrics (IoU, SSIM, Pearson)
+- Export deployment bundles (`*_deployment.pt`) for fast inference
+- FastAPI-based inference server with ensemble support
+- Lightweight frontend to upload X-rays and visualize explanations
 
+## Tech Stack
+
+- Python 3.8+
+- PyTorch, torchvision
+- FastAPI + Uvicorn
+- Pandas, NumPy, scikit-image
+- Frontend: plain HTML/CSS/vanilla JS
+
+## Demo (Local)
+
+- Backend health: `GET /health`
+- Model info: `GET /model`
+- Predict (image upload): `POST /predict` (multipart form field: `file`)
+
+---
+
+## Screenshots
+
+Preview screenshots (rendered inline). If the preview files are missing the placeholders below will still be shown.
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="frontend/screenshots/input_preview.png" alt="Input preview" width="320" />
+      <div><strong>Input</strong></div>
+    </td>
+    <td align="center">
+      <img src="frontend/screenshots/heatmap_preview.png" alt="Grad-CAM heatmap" width="320" />
+      <div><strong>Grad-CAM Heatmap</strong></div>
+    </td>
+    <td align="center">
+      <img src="frontend/screenshots/overlay_preview.png" alt="Overlay preview" width="320" />
+      <div><strong>Overlay</strong></div>
+    </td>
+  </tr>
+</table>
+
+To replace these images, copy your screenshots into `frontend/screenshots/` and name them exactly:
+
+- `input_preview.png` — input X-ray image
+- `heatmap_preview.png` — Grad-CAM heatmap
+- `overlay_preview.png` — overlay of heatmap on input
+
+If you prefer the original SVG placeholders, they are still included below as fallbacks.
+
+![Input preview](frontend/screenshots/input_placeholder.svg)
+
+![Grad-CAM heatmap](frontend/screenshots/heatmap_placeholder.svg)
+
+![Overlay preview](frontend/screenshots/overlay_placeholder.svg)
+
+## Quick Start
+
+1. Clone the repository:
+
+```bash
+git clone <repo-url>
+cd "major project"
+```
+
+2. Install dependencies:
+
+```bash
 pip install -r requirements.txt
+```
 
+3. Start the backend (default looks for a deployment bundle under `outputs_paper_seed3_ep10`):
 
-## 2) Run Backend
-
-From the project root:
-
+```bash
 uvicorn backend.app:app --reload --host 127.0.0.1 --port 8000
+```
 
-Optional: choose a specific deployment bundle:
+If you want to point to a specific deployment bundle, set the `MODEL_BUNDLE_PATH` environment variable before starting the server. Example (PowerShell):
 
-set MODEL_BUNDLE_PATH=c:\\Users\\Pankaj\\Downloads\\major - Copy\\outputs_paper_seed3_ep10\\resnet18\\lr0.0001_wd0.0001_bs8_ep10\\resnet18_run0_deployment.pt
+```powershell
+$env:MODEL_BUNDLE_PATH="C:\path\to\bundle_deployment.pt"
 uvicorn backend.app:app --reload --host 127.0.0.1 --port 8000
+```
 
-## 3) Run Frontend
+4. Serve the frontend (separate terminal):
 
-In another terminal:
-
+```bash
 cd frontend
 python -m http.server 5500
+# open http://127.0.0.1:5500
+```
 
-Open:
+5. Run a quick curl sanity check:
 
-http://127.0.0.1:5500
+```bash
+curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/model
+```
+
+---
+
+## Folder Structure
+
+```
+important.txt
+pipeline.ipynb
+pipeline.py         # Training & evaluation pipeline
+backend/            # FastAPI backend + inference helpers
+frontend/           # UI: index.html, styles.css, app.js
+dataset/            # train/ val/ test/ class folders (expected layout)
+outputs_paper_seed3_ep10/  # training outputs & deployment bundles
+```
+
+## Usage
+
+- Training and experiments are driven by `pipeline.py`. It auto-detects `dataset/train`, `dataset/val`, `dataset/test` and saves results under `outputs_paper_seed3_ep10` by backbone/config.
+- Inference bundles are created using `save_deployment_bundle(...)` and have the suffix `_deployment.pt`.
+- The frontend posts images to `/predict` and displays returned base64 PNGs for input, heatmap, and overlay.
 
 ## API Endpoints
 
-- GET /health
-- GET /model
-- POST /predict (multipart form field: file)
+- `GET /health` — basic server and model status
+- `GET /model` — currently loaded model metadata and available representative bundles
+- `POST /predict` — accepts multipart-form `file` and returns class probabilities, analysis, and Grad-CAM images (base64 PNG)
 
-## Notes
+## Environment Variables
 
-- The backend auto-detects the first \*\_deployment.pt bundle under outputs_paper_seed3_ep10.
-- Frontend default backend URL is http://127.0.0.1:8000 and can be changed in the UI.
+- `MODEL_BUNDLE_PATH` — optional: absolute path to a `_deployment.pt` bundle to override auto-discovery.
+
+Example `.env` snippet:
+
+```env
+MODEL_BUNDLE_PATH=C:\absolute\path\to\resnet18_run0_deployment.pt
+```
+
+---
+
+## Challenges & Learnings
+
+- Training stability and reproducibility: pipeline sets deterministic CUDA flags to ensure reproducible runs (may reduce throughput).
+- Grad-CAM consistency across backbones required careful selection of target layers and backward hooks.
+- Building a minimal, user-friendly frontend helped quickly validate deployment bundles during development.
+
+## Future Improvements
+
+- Add authentication and rate-limiting to the API for secure deployments.
+- Containerize the backend and provide a `docker-compose` setup.
+- Add automated tests and CI to validate model loading and prediction endpoints.
+- Provide a model management UI to switch representative bundles at runtime.
+
+## Contributing
+
+Pull requests and issues are welcome. For major changes, open an issue first to discuss the roadmap.
+
+Suggested workflow:
+
+```bash
+git checkout -b feat/your-feature
+git commit -m "Add feature"
+git push origin feat/your-feature
+# Open a PR and link the issue
+```
+
+## License
+
+This repository is provided as the **Premium edition**. Usage, redistribution, and commercial deployment require an explicit license from the project owner. Contact the maintainer for licensing terms.
+
+If you want to switch to an open-source license, add a `LICENSE` file with your chosen SPDX identifier (for example, `MIT`).

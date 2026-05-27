@@ -1,1 +1,0 @@
-single_output.py --bundle outputs_paper_seed3_ep10/efficientnet_b0/lr0.0001_wd0.0001_bs8_ep10/efficientnet_b0_run2_deployment.pt --image dataset/test/Normal/IM-0022-0001.jpeg --output-dir single_output_normal_result

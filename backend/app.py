@@ -25,9 +25,24 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 bundle_override = os.getenv("MODEL_BUNDLE_PATH")
-bundle_path = Path(bundle_override) if bundle_override else find_default_bundle_path(PROJECT_ROOT)
+if bundle_override:
+    bundle_path = Path(bundle_override)
+else:
+    try:
+        bundle_path = find_default_bundle_path(PROJECT_ROOT)
+    except FileNotFoundError:
+        bundle_path = None
 
-LOADED = load_bundle(bundle_path, DEVICE)
+LOADED = None
+_load_error: str | None = None
+if bundle_path is not None:
+    try:
+        LOADED = load_bundle(bundle_path, DEVICE)
+    except Exception as exc:  # keep service up even if bundle loading fails
+        LOADED = None
+        _load_error = str(exc)
+else:
+    _load_error = "No deployment bundle found; set MODEL_BUNDLE_PATH or add outputs_paper_seed3_ep10/*.pt"
 
 
 def discover_representative_bundles(project_root: Path) -> dict[str, Path]:
@@ -48,7 +63,13 @@ def discover_representative_bundles(project_root: Path) -> dict[str, Path]:
 
 
 REPRESENTATIVE_BUNDLES = discover_representative_bundles(PROJECT_ROOT)
-LOADED_MODELS = {name: load_bundle(path, DEVICE) for name, path in REPRESENTATIVE_BUNDLES.items()}
+LOADED_MODELS: dict[str, object] = {}
+for name, path in REPRESENTATIVE_BUNDLES.items():
+    try:
+        LOADED_MODELS[name] = load_bundle(path, DEVICE)
+    except Exception:
+        # skip models that fail to load; keep server available
+        continue
 
 app = FastAPI(title="Lung Disease Inference API", version="1.0.0")
 
@@ -66,17 +87,33 @@ def health() -> dict[str, str]:
     return {
         "status": "ok",
         "device": str(DEVICE),
-        "bundle": str(bundle_path),
+        "bundle": str(bundle_path) if bundle_path is not None else None,
+        "model_loaded": bool(LOADED),
+        "load_error": _load_error,
     }
 
 
 @app.get("/model")
 def model_info() -> dict[str, object]:
+    if LOADED is None:
+        return {
+            "model_loaded": False,
+            "error": _load_error,
+            "available_models": [
+                {
+                    "model_name": model_name,
+                    "bundle": str(REPRESENTATIVE_BUNDLES[model_name]),
+                }
+                for model_name in sorted(REPRESENTATIVE_BUNDLES.keys())
+            ],
+        }
+
     return {
+        "model_loaded": True,
         "backbone": LOADED.backbone,
         "classes": LOADED.class_names,
         "image_size": LOADED.image_size,
-        "bundle": str(bundle_path),
+        "bundle": str(bundle_path) if bundle_path is not None else None,
         "available_models": [
             {
                 "model_name": model_name,
@@ -89,6 +126,9 @@ def model_info() -> dict[str, object]:
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)) -> JSONResponse:
+    if LOADED is None:
+        raise HTTPException(status_code=503, detail=f"No model loaded: {_load_error}")
+
     if not file.filename:
         raise HTTPException(status_code=400, detail="Missing filename")
 
