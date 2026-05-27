@@ -83,13 +83,27 @@ app.add_middleware(
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
+def health() -> dict[str, object]:
     return {
         "status": "ok",
         "device": str(DEVICE),
         "bundle": str(bundle_path) if bundle_path is not None else None,
         "model_loaded": bool(LOADED),
         "load_error": _load_error,
+    }
+
+
+@app.get("/")
+def root() -> dict[str, object]:
+    return {
+        "service": "Lung Disease Inference API",
+        "status": "ok",
+        "endpoints": {
+            "health": "/health",
+            "model": "/model",
+            "predict": "/predict",
+            "docs": "/docs",
+        },
     }
 
 
